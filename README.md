@@ -23,3 +23,12 @@ DevInsight AI is an AI-powered GitHub assistant that analyzes Pull Requests and 
 2. Install dependencies
 3. Add API keys
 4. Run backend
+
+## Current Status
+
+🚧 This project is under active development.
+
+Upcoming:
+- AI code review
+- Repository insights
+- Engineering analytics
