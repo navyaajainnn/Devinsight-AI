@@ -18,41 +18,49 @@ Paste a public GitHub PR URL, and DevInsight AI will:
 
 ## Running locally
 
-1. Clone the repository
+### 1. Clone the repository
+
 git clone https://github.com/navyaajainnn/Devinsight-AI.git
 cd Devinsight-AI
 
-2. Create and activate a virtual environment
-python -m venv venv
-venv\Scripts\activate # Windows
-source venv/bin/activate # Mac/Linux
+### 2. Create and activate a virtual environment
 
-3. Install dependencies
+python -m venv venv
+venv\Scripts\activate
+source venv/bin/activate
+
+### 3. Install dependencies
+
 pip install -r requirements.txt
 
-4. Add your API keys
-   Create a `.env` file in the project root:
-   GITHUB_TOKEN=your_github_token_here
-   GOOGLE_API_KEY=your_google_api_key_here
+### 4. Add your API keys
 
-5. Run the app
+Create a `.env` file in the project root with:
+
+GITHUB_TOKEN=your_github_token_here
+GOOGLE_API_KEY=your_google_api_key_here
+
+### 5. Run the app
+
 uvicorn main:app --reload
 
-6. Open your browser to `http://127.0.0.1:8000`
+### 6. Open your browser
+
+Go to http://127.0.0.1:8000
 
 ## Project structure
+
 devinsight-ai/
-├── static/
-│ └── index.html # Frontend UI
-├── fetch_pr_diff.py # Fetches PR diffs from GitHub's API
-├── summarize_pr.py # Sends diffs to Gemini, parses structured response
-├── main.py # FastAPI backend and routes
-├── requirements.txt
-└── .gitignore
+- static/index.html — Frontend UI
+- fetch_pr_diff.py — Fetches PR diffs from GitHub's API
+- summarize_pr.py — Sends diffs to Gemini, parses structured response
+- main.py — FastAPI backend and routes
+- requirements.txt
+- .gitignore
 
 ## Current Status
 
-🚧 Actively in development — this is Phase 1 of a larger project.
+Actively in development — this is Phase 1 of a larger project.
 
 **Working now:**
 - PR fetching via GitHub API
@@ -64,4 +72,3 @@ devinsight-ai/
 - Duplicate logic detection
 - Unit test generation
 - Architecture explanation and sequence diagrams
-
