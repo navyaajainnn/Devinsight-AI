@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DevInsight AI - PR Summarizer</title>
+  <style>
+    body {
+      font-family: -apple-system, sans-serif;
+      max-width: 700px;
+      margin: 60px auto;
+      padding: 0 20px;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.4rem; }
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 30px;
+      white-space: pre-wrap;
+      background: #bf6f6f;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+    #loading { display: none; margin-top: 20px; color: #666; }
+    .risk-low { color: #1a7a1a; }
+    .risk-medium { color: #b8860b; }
+    .risk-high { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>DevInsight AI &mdash; PR Summarizer</h1>
+  <p>Paste a public GitHub PR URL to get an AI-generated summary.</p>
+
+  <input id="prUrl" type="text" placeholder="https://github.com/owner/repo/pull/123" />
+  <button id="submitBtn">Summarize</button>
+
+  <div id="loading">Analyzing PR, this can take a few seconds...</div>
+  <div id="result"></div>
+
+  <script>
+    const submitBtn = document.getElementById("submitBtn");
+    const resultDiv = document.getElementById("result");
+    const loadingDiv = document.getElementById("loading");
+    const prUrlInput = document.getElementById("prUrl");
+
+    submitBtn.addEventListener("click", async () => {
+      const prUrl = prUrlInput.value.trim();
+      if (!prUrl) {
+        alert("Please paste a PR URL first.");
+        return;
+      }
+
+      resultDiv.style.display = "none";
+      loadingDiv.style.display = "block";
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch("/summarize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pr_url: prUrl }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          resultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
+        } else {
+          const riskClass = "risk-" + data.risk_level;
+          resultDiv.innerHTML = `
+            <strong>Summary:</strong> ${data.summary}<br><br>
+            <strong>Risk level:</strong> <span class="${riskClass}">${data.risk_level}</span><br>
+            <strong>Files changed:</strong> ${data.files_changed}<br><br>
+            <strong>Key changes:</strong>
+            <ul>${data.key_changes.map(c => `<li>${c}</li>`).join("")}</ul>
+          `;
+        }
+
+        resultDiv.style.display = "block";
+      } catch (err) {
+        resultDiv.innerHTML = `<strong>Error:</strong> Could not reach the server.`;
+        resultDiv.style.display = "block";
+      } finally {
+        loadingDiv.style.display = "none";
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
