@@ -27,7 +27,7 @@
     #result {
       margin-top: 30px;
       white-space: pre-wrap;
-      background: #bf6f6f;
+      background: #f5f5f5;
       padding: 15px;
       border-radius: 6px;
       display: none;
@@ -78,12 +78,25 @@
           resultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
         } else {
           const riskClass = "risk-" + data.risk_level;
+          const issuesHtml = data.issues.length === 0
+            ? "<p>No issues found.</p>"
+            : `<ul>${data.issues.map(i =>
+                `<li><strong>[${i.severity.toUpperCase()}]</strong> ${i.description} <em>(confidence: ${i.confidence})</em></li>`
+              ).join("")}</ul>`;
+
+          const truncatedNotice = data.diff_truncated
+            ? `<p style="color:#b8860b;"><em>Note: this PR's diff was too large to fully analyze; results are based on a partial diff.</em></p>`
+            : "";
+
           resultDiv.innerHTML = `
+            ${truncatedNotice}
             <strong>Summary:</strong> ${data.summary}<br><br>
             <strong>Risk level:</strong> <span class="${riskClass}">${data.risk_level}</span><br>
             <strong>Files changed:</strong> ${data.files_changed}<br><br>
             <strong>Key changes:</strong>
             <ul>${data.key_changes.map(c => `<li>${c}</li>`).join("")}</ul>
+            <strong>Potential issues:</strong>
+            ${issuesHtml}
           `;
         }
 
