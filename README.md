@@ -1,34 +1,67 @@
 # DevInsight AI
 
-DevInsight AI is an AI-powered GitHub assistant that analyzes Pull Requests and generates concise summaries using LLMs.
+An AI-powered assistant that analyzes GitHub Pull Requests and generates concise, structured summaries using an LLM — built as a hands-on project to learn full-stack development and practical LLM integration.
 
-## Features
+## What it does
 
-- Connects to GitHub repositories
-- Fetches Pull Requests
-- Generates AI-powered PR summaries
-- Clean web interface
+Paste a public GitHub PR URL, and DevInsight AI will:
+- Fetch the PR's diff directly from GitHub
+- Send it to an LLM with a structured prompt
+- Return a clean summary: what changed, risk level, key changes, and files touched
 
 ## Tech Stack
 
-- Python
-- FastAPI
-- React
-- GitHub API
-- Gemini 
+- **Backend:** Python, FastAPI
+- **Frontend:** HTML, CSS, vanilla JavaScript
+- **AI:** Google Gemini API
+- **Integration:** GitHub REST API
 
 ## Running locally
 
 1. Clone the repository
-2. Install dependencies
-3. Add API keys
-4. Run backend
+git clone https://github.com/navyaajainnn/Devinsight-AI.git
+cd Devinsight-AI
+
+2. Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate # Windows
+source venv/bin/activate # Mac/Linux
+
+3. Install dependencies
+pip install -r requirements.txt
+
+4. Add your API keys
+   Create a `.env` file in the project root:
+   GITHUB_TOKEN=your_github_token_here
+   GOOGLE_API_KEY=your_google_api_key_here
+
+5. Run the app
+uvicorn main:app --reload
+
+6. Open your browser to `http://127.0.0.1:8000`
+
+## Project structure
+devinsight-ai/
+├── static/
+│ └── index.html # Frontend UI
+├── fetch_pr_diff.py # Fetches PR diffs from GitHub's API
+├── summarize_pr.py # Sends diffs to Gemini, parses structured response
+├── main.py # FastAPI backend and routes
+├── requirements.txt
+└── .gitignore
 
 ## Current Status
 
-🚧 This project is under active development.
+🚧 Actively in development — this is Phase 1 of a larger project.
 
-Upcoming:
-- AI code review
-- Repository insights
-- Engineering analytics
+**Working now:**
+- PR fetching via GitHub API
+- AI-generated PR summaries (summary, risk level, key changes, files changed)
+- Simple web interface
+
+**Planned next:**
+- Bug/issue detection in diffs
+- Duplicate logic detection
+- Unit test generation
+- Architecture explanation and sequence diagrams
+
