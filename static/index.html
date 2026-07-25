@@ -33,6 +33,25 @@
       display: none;
     }
     #loading { display: none; margin-top: 20px; color: #666; }
+    #testLoading { display: none; margin-top: 20px; color: #666; }
+    #testResult {
+      margin-top: 20px;
+      display: none;
+    }
+    #testResult pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    .test-notes {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #666;
+      font-style: italic;
+    }
     .risk-low { color: #1a7a1a; }
     .risk-medium { color: #b8860b; }
     .risk-high { color: #b00020; }
@@ -44,15 +63,70 @@
 
   <input id="prUrl" type="text" placeholder="https://github.com/owner/repo/pull/123" />
   <button id="submitBtn">Summarize</button>
+  <button id="testBtn">Generate Tests</button>
 
-  <div id="loading">Analyzing PR, this can take a few seconds...</div>
+  <div id="loading" style="display:none;">Analyzing PR, this can take a few seconds...</div>
   <div id="result"></div>
+
+  <div id="testLoading" style="display:none;">Generating tests, this can take a few seconds...</div>
+  <div id="testResult"></div>
 
   <script>
     const submitBtn = document.getElementById("submitBtn");
     const resultDiv = document.getElementById("result");
     const loadingDiv = document.getElementById("loading");
     const prUrlInput = document.getElementById("prUrl");
+
+    const testBtn = document.getElementById("testBtn");
+    const testResultDiv = document.getElementById("testResult");
+    const testLoadingDiv = document.getElementById("testLoading");
+
+    testBtn.addEventListener("click", async () => {
+      const prUrl = prUrlInput.value.trim();
+      if (!prUrl) {
+        alert("Please paste a PR URL first.");
+        return;
+      }
+
+      testResultDiv.style.display = "none";
+      testLoadingDiv.style.display = "block";
+      testBtn.disabled = true;
+
+      try {
+        const response = await fetch("/generate-tests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pr_url: prUrl }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          testResultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
+        } else if (!data.test_code) {
+          testResultDiv.innerHTML = `<p><em>${data.notes}</em></p>`;
+        } else {
+          const escaped = data.test_code
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+          testResultDiv.innerHTML = `
+            <strong>Generated ${data.language} tests</strong> (covers: ${data.functions_covered.join(", ") || "n/a"})
+            <pre><code>${escaped}</code></pre>
+            <p class="test-notes">${data.notes}</p>
+          `;
+        }
+
+        testResultDiv.style.display = "block";
+      } catch (err) {
+        testResultDiv.innerHTML = `<strong>Error:</strong> Could not reach the server.`;
+        testResultDiv.style.display = "block";
+      } finally {
+        testLoadingDiv.style.display = "none";
+        testBtn.disabled = false;
+      }
+    });
 
     submitBtn.addEventListener("click", async () => {
       const prUrl = prUrlInput.value.trim();
