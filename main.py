@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from fetch_pr_diff import parse_pr_url, fetch_pr_diff, PRFetchError
 from summarize_pr import summarize_diff, generate_tests, SummarizeError
+from duplicate_detector import parse_repo_url, find_duplicates, DuplicateDetectionError
 
 app = FastAPI()
 
@@ -66,6 +67,21 @@ def generate_tests_endpoint(request: SummarizeRequest):
         raise HTTPException(status_code=502, detail=message)
 
     return tests
+
+
+@app.post("/detect-duplicates")
+def detect_duplicates_endpoint(request: SummarizeRequest):
+    """
+    Scan a repo's Python files for near-duplicate functions.
+    Accepts a repo URL or a PR URL in the same field (only owner/repo is used).
+    """
+    try:
+        owner, repo = parse_repo_url(request.pr_url)
+        result = find_duplicates(owner, repo)
+    except DuplicateDetectionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return result
 
 
 # Serve the frontend files (index.html, etc.) from a folder called "static"

@@ -34,6 +34,18 @@
     }
     #loading { display: none; margin-top: 20px; color: #666; }
     #testLoading { display: none; margin-top: 20px; color: #666; }
+    #dupLoading { display: none; margin-top: 20px; color: #666; }
+    #dupResult {
+      margin-top: 20px;
+      display: none;
+    }
+    .dup-pair {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
     #testResult {
       margin-top: 20px;
       display: none;
@@ -64,12 +76,16 @@
   <input id="prUrl" type="text" placeholder="https://github.com/owner/repo/pull/123" />
   <button id="submitBtn">Summarize</button>
   <button id="testBtn">Generate Tests</button>
+  <button id="dupBtn">Find Duplicates</button>
 
   <div id="loading" style="display:none;">Analyzing PR, this can take a few seconds...</div>
   <div id="result"></div>
 
   <div id="testLoading" style="display:none;">Generating tests, this can take a few seconds...</div>
   <div id="testResult"></div>
+
+  <div id="dupLoading" style="display:none;">Scanning repo for duplicate functions, this can take a moment...</div>
+  <div id="dupResult"></div>
 
   <script>
     const submitBtn = document.getElementById("submitBtn");
@@ -80,6 +96,58 @@
     const testBtn = document.getElementById("testBtn");
     const testResultDiv = document.getElementById("testResult");
     const testLoadingDiv = document.getElementById("testLoading");
+
+    const dupBtn = document.getElementById("dupBtn");
+    const dupResultDiv = document.getElementById("dupResult");
+    const dupLoadingDiv = document.getElementById("dupLoading");
+
+    dupBtn.addEventListener("click", async () => {
+      const prUrl = prUrlInput.value.trim();
+      if (!prUrl) {
+        alert("Please paste a GitHub repo or PR URL first.");
+        return;
+      }
+
+      dupResultDiv.style.display = "none";
+      dupLoadingDiv.style.display = "block";
+      dupBtn.disabled = true;
+
+      try {
+        const response = await fetch("/detect-duplicates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pr_url: prUrl }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          dupResultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
+        } else {
+          const header = `<p>Scanned ${data.files_scanned} files, analyzed ${data.functions_analyzed} functions.</p>`;
+
+          const dupsHtml = data.duplicates.length === 0
+            ? "<p>No near-duplicate functions found.</p>"
+            : data.duplicates.map(d => `
+                <div class="dup-pair">
+                  <strong>${Math.round(d.similarity * 100)}% similar:</strong><br>
+                  ${d.function_a.name}() &mdash; ${d.function_a.file}:${d.function_a.line}<br>
+                  ${d.function_b.name}() &mdash; ${d.function_b.file}:${d.function_b.line}
+                </div>
+              `).join("");
+
+          dupResultDiv.innerHTML = header + dupsHtml;
+        }
+
+        dupResultDiv.style.display = "block";
+      } catch (err) {
+        dupResultDiv.innerHTML = `<strong>Error:</strong> Could not reach the server.`;
+        dupResultDiv.style.display = "block";
+      } finally {
+        dupLoadingDiv.style.display = "none";
+        dupBtn.disabled = false;
+      }
+    });
 
     testBtn.addEventListener("click", async () => {
       const prUrl = prUrlInput.value.trim();
