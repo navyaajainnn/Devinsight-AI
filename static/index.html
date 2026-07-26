@@ -2,111 +2,471 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DevInsight AI - PR Summarizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DevInsight AI — AI-powered PR review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --ink: #0b0d12;
+      --panel: #12151d;
+      --panel-raised: #171b26;
+      --line: #232838;
+      --text: #e8eaf0;
+      --mute: #838ba1;
+      --added: #5fd97e;
+      --removed: #ff6b6b;
+      --signal: #f0b93e;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, sans-serif;
-      max-width: 700px;
-      margin: 60px auto;
-      padding: 0 20px;
-      color: #1a1a1a;
+      background: var(--ink);
+      color: var(--text);
+      font-family: var(--font-sans);
+      margin: 0;
+      line-height: 1.5;
     }
-    h1 { font-size: 1.4rem; }
-    input {
-      width: 100%;
-      padding: 10px;
-      font-size: 1rem;
-      box-sizing: border-box;
-      margin-bottom: 10px;
+
+    .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line);
     }
-    button {
-      padding: 10px 20px;
-      font-size: 1rem;
+    nav .logo {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    nav .logo .prompt { color: var(--signal); }
+    nav a.repo-link {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--mute);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    nav a.repo-link:hover { border-color: #3a4258; color: var(--text); }
+
+    .hero { padding: 72px 0 56px; text-align: center; }
+    .hero .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--signal);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 2.6rem;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .hero h1 .accent { color: var(--signal); }
+    .hero p.sub {
+      color: var(--mute);
+      font-size: 1.05rem;
+      max-width: 480px;
+      margin: 0 auto 40px;
+    }
+
+    .diff-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      max-width: 560px;
+      margin: 0 auto;
+      text-align: left;
+      overflow: hidden;
+      box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+    }
+    .diff-card .diff-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .diff-card .dot { width: 9px; height: 9px; border-radius: 50%; background: #3a4258; }
+    .diff-card .diff-filename {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--mute);
+      margin-left: 8px;
+    }
+    .diff-card .diff-body {
+      font-family: var(--font-mono);
+      font-size: 0.83rem;
+      line-height: 1.85;
+      padding: 14px 0;
+    }
+    .diff-line { padding: 0 18px; white-space: pre; }
+    .diff-line.add { background: rgba(95, 217, 126, 0.08); color: var(--added); }
+    .diff-line.remove { background: rgba(255, 107, 107, 0.08); color: var(--removed); }
+    .diff-line.ctx { color: #5b6274; }
+    .diff-card .diff-annotation {
+      font-family: var(--font-sans);
+      font-size: 0.78rem;
+      color: var(--signal);
+      background: rgba(240, 185, 62, 0.08);
+      border-top: 1px solid var(--line);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 8px 0 64px;
+    }
+    .feature-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px 18px;
+    }
+    .feature-card .ficon {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+    }
+    .feature-card:nth-child(1) .ficon { background: rgba(240, 185, 62, 0.12); color: var(--signal); }
+    .feature-card:nth-child(2) .ficon { background: rgba(95, 217, 126, 0.12); color: var(--added); }
+    .feature-card:nth-child(3) .ficon { background: rgba(255, 107, 107, 0.12); color: var(--removed); }
+    .feature-card h3 { font-size: 0.92rem; font-weight: 600; margin: 0 0 6px; }
+    .feature-card p { font-size: 0.82rem; color: var(--mute); margin: 0; line-height: 1.55; }
+
+    @media (max-width: 640px) {
+      .features { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2rem; }
+    }
+
+    .tool-section { border-top: 1px solid var(--line); padding: 56px 0 80px; }
+    .tool-heading {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 18px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 4px 4px 4px 14px;
+      margin-bottom: 14px;
+    }
+    .input-row .prefix {
+      font-family: var(--font-mono);
+      color: var(--mute);
+      font-size: 0.85rem;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+    .input-row input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      padding: 10px 4px;
+      min-width: 0;
+    }
+    .input-row input::placeholder { color: #4a5164; }
+
+    .actions { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+    button.action {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 16px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    #result {
-      margin-top: 30px;
-      white-space: pre-wrap;
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 6px;
+    button.action:hover:not(:disabled) { border-color: #3a4258; background: var(--panel-raised); }
+    button.action:disabled { opacity: 0.5; cursor: default; }
+    button.action .icon { font-size: 0.9rem; line-height: 1; }
+    #submitBtn .icon { color: var(--signal); }
+    #testBtn .icon { color: var(--added); }
+    #dupBtn .icon { color: var(--removed); }
+
+    .loading {
       display: none;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--mute);
+      margin-bottom: 20px;
     }
-    #loading { display: none; margin-top: 20px; color: #666; }
-    #testLoading { display: none; margin-top: 20px; color: #666; }
-    #dupLoading { display: none; margin-top: 20px; color: #666; }
-    #dupResult {
-      margin-top: 20px;
+    .loading::after { content: ''; animation: dots 1.3s steps(4, end) infinite; }
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+
+    .panel {
       display: none;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
     }
-    .dup-pair {
-      background: #f5f5f5;
-      padding: 12px;
+    .panel-head {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--mute);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .panel-body { padding: 18px 20px; }
+
+    .risk-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .risk-low { color: var(--added); background: rgba(95, 217, 126, 0.12); }
+    .risk-medium { color: var(--signal); background: rgba(240, 185, 62, 0.12); }
+    .risk-high { color: var(--removed); background: rgba(255, 107, 107, 0.12); }
+
+    .meta-row { display: flex; gap: 24px; margin: 12px 0 18px; font-size: 0.85rem; color: var(--mute); flex-wrap: wrap; }
+    .meta-row strong { color: var(--text); font-weight: 500; }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 18px 0 8px;
+    }
+
+    ul.clean-list { list-style: none; padding: 0; margin: 0; }
+    ul.clean-list li { position: relative; padding-left: 16px; margin-bottom: 6px; font-size: 0.9rem; }
+    ul.clean-list li::before {
+      content: '+';
+      position: absolute;
+      left: 0;
+      color: var(--added);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .flag {
+      border-left: 3px solid var(--line);
+      background: var(--panel-raised);
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+    .flag.sev-high { border-left-color: var(--removed); }
+    .flag.sev-medium { border-left-color: var(--signal); }
+    .flag.sev-low { border-left-color: var(--mute); }
+    .flag .sev-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-right: 8px;
+    }
+    .flag.sev-high .sev-label { color: var(--removed); }
+    .flag.sev-medium .sev-label { color: var(--signal); }
+    .flag.sev-low .sev-label { color: var(--mute); }
+    .flag .confidence { color: var(--mute); font-style: italic; font-size: 0.82rem; }
+
+    .notice {
+      font-size: 0.85rem;
+      color: var(--signal);
+      background: rgba(240, 185, 62, 0.08);
+      border: 1px solid rgba(240, 185, 62, 0.25);
       border-radius: 6px;
-      margin-bottom: 10px;
-      font-size: 0.9rem;
+      padding: 8px 12px;
+      margin-bottom: 16px;
     }
-    #testResult {
-      margin-top: 20px;
-      display: none;
-    }
-    #testResult pre {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 15px;
+
+    .error-text { color: var(--removed); font-family: var(--font-mono); font-size: 0.88rem; }
+
+    pre {
+      background: #0d1017;
+      border: 1px solid var(--line);
       border-radius: 6px;
+      padding: 16px;
       overflow-x: auto;
-      font-size: 0.9rem;
+      font-size: 0.83rem;
+      line-height: 1.6;
     }
-    .test-notes {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: #666;
-      font-style: italic;
+    pre code { font-family: var(--font-mono); color: #c3cadd; }
+
+    .notes-text { margin-top: 10px; font-size: 0.85rem; color: var(--mute); font-style: italic; }
+
+    .dup-pair { background: var(--panel-raised); border-radius: 6px; padding: 12px 14px; margin-bottom: 8px; font-size: 0.87rem; }
+    .dup-pair .sim { font-family: var(--font-mono); color: var(--signal); font-weight: 600; font-size: 0.8rem; }
+    .dup-pair .loc { font-family: var(--font-mono); color: var(--mute); font-size: 0.82rem; display: block; margin-top: 4px; }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 0 40px;
+      text-align: center;
+      color: var(--mute);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
     }
-    .risk-low { color: #1a7a1a; }
-    .risk-medium { color: #b8860b; }
-    .risk-high { color: #b00020; }
   </style>
 </head>
 <body>
-  <h1>DevInsight AI &mdash; PR Summarizer</h1>
-  <p>Paste a public GitHub PR URL to get an AI-generated summary.</p>
 
-  <input id="prUrl" type="text" placeholder="https://github.com/owner/repo/pull/123" />
-  <button id="submitBtn">Summarize</button>
-  <button id="testBtn">Generate Tests</button>
-  <button id="dupBtn">Find Duplicates</button>
+  <div class="wrap">
+    <nav>
+      <div class="logo"><span class="prompt">$</span> devinsight-ai</div>
+      <a class="repo-link" href="https://github.com/navyaajainnn/Devinsight-AI" target="_blank">View source →</a>
+    </nav>
 
-  <div id="loading" style="display:none;">Analyzing PR, this can take a few seconds...</div>
-  <div id="result"></div>
+    <section class="hero">
+      <div class="eyebrow">AI-powered PR review</div>
+      <h1>Understand any pull<br>request in <span class="accent">seconds</span>.</h1>
+      <p class="sub">Paste a GitHub PR or repo. Get a plain-English summary, real bug findings, generated tests, and duplicate-logic detection — no setup required.</p>
 
-  <div id="testLoading" style="display:none;">Generating tests, this can take a few seconds...</div>
-  <div id="testResult"></div>
+      <div class="diff-card">
+        <div class="diff-head">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="diff-filename">reaction_picker.tsx</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-line ctx">  function ReactionPicker({ emoji }) {</div>
+          <div class="diff-line remove">-   aria-label={emojiDisplayLabel}</div>
+          <div class="diff-line add">+   aria-label={emoji}</div>
+          <div class="diff-line ctx">  }</div>
+        </div>
+        <div class="diff-annotation">⚠ Medium risk — removes localized label for screen readers</div>
+      </div>
+    </section>
 
-  <div id="dupLoading" style="display:none;">Scanning repo for duplicate functions, this can take a moment...</div>
-  <div id="dupResult"></div>
+    <section class="features">
+      <div class="feature-card">
+        <div class="ficon">▸</div>
+        <h3>Summarize &amp; flag risk</h3>
+        <p>Plain-English summary of any PR, with a risk level and concrete bug findings — not style nitpicks.</p>
+      </div>
+      <div class="feature-card">
+        <div class="ficon">✓</div>
+        <h3>Generate tests</h3>
+        <p>Detects the language automatically and writes real, runnable tests — pytest, Jest, JUnit, and more.</p>
+      </div>
+      <div class="feature-card">
+        <div class="ficon">⧉</div>
+        <h3>Find duplicate logic</h3>
+        <p>Parses the whole repo with tree-sitter to catch copy-pasted functions across files and languages.</p>
+      </div>
+    </section>
+
+    <section class="tool-section">
+      <div class="tool-heading">Try it</div>
+
+      <div class="input-row">
+        <span class="prefix">github.com/</span>
+        <input id="prUrl" type="text" placeholder="owner/repo/pull/123  or  owner/repo" />
+      </div>
+
+      <div class="actions">
+        <button id="submitBtn" class="action"><span class="icon">▸</span> Summarize</button>
+        <button id="testBtn" class="action"><span class="icon">✓</span> Generate Tests</button>
+        <button id="dupBtn" class="action"><span class="icon">⧉</span> Find Duplicates</button>
+      </div>
+
+      <div id="loading" class="loading">Analyzing PR</div>
+      <div id="result" class="panel">
+        <div class="panel-head">Summary</div>
+        <div class="panel-body" id="resultBody"></div>
+      </div>
+
+      <div id="testLoading" class="loading">Generating tests</div>
+      <div id="testResult" class="panel">
+        <div class="panel-head">Generated Tests</div>
+        <div class="panel-body" id="testResultBody"></div>
+      </div>
+
+      <div id="dupLoading" class="loading">Scanning repo for duplicate functions</div>
+      <div id="dupResult" class="panel">
+        <div class="panel-head">Duplicate Logic</div>
+        <div class="panel-body" id="dupResultBody"></div>
+      </div>
+    </section>
+
+    <footer>© 2026 devinsight-ai</footer>
+  </div>
 
   <script>
     const submitBtn = document.getElementById("submitBtn");
     const resultDiv = document.getElementById("result");
+    const resultBody = document.getElementById("resultBody");
     const loadingDiv = document.getElementById("loading");
     const prUrlInput = document.getElementById("prUrl");
 
     const testBtn = document.getElementById("testBtn");
     const testResultDiv = document.getElementById("testResult");
+    const testResultBody = document.getElementById("testResultBody");
     const testLoadingDiv = document.getElementById("testLoading");
 
     const dupBtn = document.getElementById("dupBtn");
     const dupResultDiv = document.getElementById("dupResult");
+    const dupResultBody = document.getElementById("dupResultBody");
     const dupLoadingDiv = document.getElementById("dupLoading");
 
+    function normalizeUrl(value) {
+      const trimmed = value.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("http")) return trimmed;
+      return `https://github.com/${trimmed}`;
+    }
+
     dupBtn.addEventListener("click", async () => {
-      const prUrl = prUrlInput.value.trim();
-      if (!prUrl) {
-        alert("Please paste a GitHub repo or PR URL first.");
-        return;
-      }
+      const prUrl = normalizeUrl(prUrlInput.value);
+      if (!prUrl) { alert("Please paste a GitHub repo or PR URL first."); return; }
 
       dupResultDiv.style.display = "none";
       dupLoadingDiv.style.display = "block";
@@ -118,30 +478,26 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pr_url: prUrl }),
         });
-
         const data = await response.json();
 
         if (!response.ok) {
-          dupResultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
+          dupResultBody.innerHTML = `<span class="error-text">Error: ${data.detail}</span>`;
         } else {
-          const header = `<p>Scanned ${data.files_scanned} files, analyzed ${data.functions_analyzed} functions.</p>`;
-
+          const header = `<div class="meta-row"><span><strong>${data.files_scanned}</strong> files scanned</span><span><strong>${data.functions_analyzed}</strong> functions analyzed</span></div>`;
           const dupsHtml = data.duplicates.length === 0
-            ? "<p>No near-duplicate functions found.</p>"
+            ? "<p style='color:var(--mute); font-size:0.88rem;'>No near-duplicate functions found.</p>"
             : data.duplicates.map(d => `
                 <div class="dup-pair">
-                  <strong>${Math.round(d.similarity * 100)}% similar:</strong><br>
-                  ${d.function_a.name}() &mdash; ${d.function_a.file}:${d.function_a.line}<br>
-                  ${d.function_b.name}() &mdash; ${d.function_b.file}:${d.function_b.line}
+                  <span class="sim">${Math.round(d.similarity * 100)}% similar</span>
+                  <span class="loc">${d.function_a.name}() — ${d.function_a.file}:${d.function_a.line}</span>
+                  <span class="loc">${d.function_b.name}() — ${d.function_b.file}:${d.function_b.line}</span>
                 </div>
               `).join("");
-
-          dupResultDiv.innerHTML = header + dupsHtml;
+          dupResultBody.innerHTML = header + dupsHtml;
         }
-
         dupResultDiv.style.display = "block";
       } catch (err) {
-        dupResultDiv.innerHTML = `<strong>Error:</strong> Could not reach the server.`;
+        dupResultBody.innerHTML = `<span class="error-text">Error: Could not reach the server.</span>`;
         dupResultDiv.style.display = "block";
       } finally {
         dupLoadingDiv.style.display = "none";
@@ -150,11 +506,8 @@
     });
 
     testBtn.addEventListener("click", async () => {
-      const prUrl = prUrlInput.value.trim();
-      if (!prUrl) {
-        alert("Please paste a PR URL first.");
-        return;
-      }
+      const prUrl = normalizeUrl(prUrlInput.value);
+      if (!prUrl) { alert("Please paste a PR URL first."); return; }
 
       testResultDiv.style.display = "none";
       testLoadingDiv.style.display = "block";
@@ -166,29 +519,26 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pr_url: prUrl }),
         });
-
         const data = await response.json();
 
         if (!response.ok) {
-          testResultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
+          testResultBody.innerHTML = `<span class="error-text">Error: ${data.detail}</span>`;
         } else if (!data.test_code) {
-          testResultDiv.innerHTML = `<p><em>${data.notes}</em></p>`;
+          testResultBody.innerHTML = `<p class="notes-text">${data.notes}</p>`;
         } else {
           const escaped = data.test_code
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;");
-
-          testResultDiv.innerHTML = `
-            <strong>Generated ${data.language} tests</strong> (covers: ${data.functions_covered.join(", ") || "n/a"})
+          testResultBody.innerHTML = `
+            <div class="meta-row"><span><strong>${data.language}</strong></span><span>covers: ${data.functions_covered.join(", ") || "n/a"}</span></div>
             <pre><code>${escaped}</code></pre>
-            <p class="test-notes">${data.notes}</p>
+            <p class="notes-text">${data.notes}</p>
           `;
         }
-
         testResultDiv.style.display = "block";
       } catch (err) {
-        testResultDiv.innerHTML = `<strong>Error:</strong> Could not reach the server.`;
+        testResultBody.innerHTML = `<span class="error-text">Error: Could not reach the server.</span>`;
         testResultDiv.style.display = "block";
       } finally {
         testLoadingDiv.style.display = "none";
@@ -197,11 +547,8 @@
     });
 
     submitBtn.addEventListener("click", async () => {
-      const prUrl = prUrlInput.value.trim();
-      if (!prUrl) {
-        alert("Please paste a PR URL first.");
-        return;
-      }
+      const prUrl = normalizeUrl(prUrlInput.value);
+      if (!prUrl) { alert("Please paste a PR URL first."); return; }
 
       resultDiv.style.display = "none";
       loadingDiv.style.display = "block";
@@ -213,38 +560,40 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pr_url: prUrl }),
         });
-
         const data = await response.json();
 
         if (!response.ok) {
-          resultDiv.innerHTML = `<strong>Error:</strong> ${data.detail}`;
+          resultBody.innerHTML = `<span class="error-text">Error: ${data.detail}</span>`;
         } else {
           const riskClass = "risk-" + data.risk_level;
           const issuesHtml = data.issues.length === 0
-            ? "<p>No issues found.</p>"
-            : `<ul>${data.issues.map(i =>
-                `<li><strong>[${i.severity.toUpperCase()}]</strong> ${i.description} <em>(confidence: ${i.confidence})</em></li>`
-              ).join("")}</ul>`;
-
+            ? "<p style='color:var(--mute); font-size:0.88rem;'>No issues found.</p>"
+            : data.issues.map(i => `
+                <div class="flag sev-${i.severity}">
+                  <span class="sev-label">${i.severity}</span>${i.description}
+                  <span class="confidence"> (confidence: ${i.confidence})</span>
+                </div>
+              `).join("");
           const truncatedNotice = data.diff_truncated
-            ? `<p style="color:#b8860b;"><em>Note: this PR's diff was too large to fully analyze; results are based on a partial diff.</em></p>`
+            ? `<div class="notice">This PR's diff was too large to fully analyze — results are based on a partial diff.</div>`
             : "";
 
-          resultDiv.innerHTML = `
+          resultBody.innerHTML = `
             ${truncatedNotice}
-            <strong>Summary:</strong> ${data.summary}<br><br>
-            <strong>Risk level:</strong> <span class="${riskClass}">${data.risk_level}</span><br>
-            <strong>Files changed:</strong> ${data.files_changed}<br><br>
-            <strong>Key changes:</strong>
-            <ul>${data.key_changes.map(c => `<li>${c}</li>`).join("")}</ul>
-            <strong>Potential issues:</strong>
+            <div class="meta-row">
+              <span class="risk-badge ${riskClass}">${data.risk_level} risk</span>
+              <span><strong>${data.files_changed}</strong> files changed</span>
+            </div>
+            <p>${data.summary}</p>
+            <div class="section-label">Key changes</div>
+            <ul class="clean-list">${data.key_changes.map(c => `<li>${c}</li>`).join("")}</ul>
+            <div class="section-label">Potential issues</div>
             ${issuesHtml}
           `;
         }
-
         resultDiv.style.display = "block";
       } catch (err) {
-        resultDiv.innerHTML = `<strong>Error:</strong> Could not reach the server.`;
+        resultBody.innerHTML = `<span class="error-text">Error: Could not reach the server.</span>`;
         resultDiv.style.display = "block";
       } finally {
         loadingDiv.style.display = "none";
