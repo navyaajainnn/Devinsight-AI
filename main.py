@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from fetch_pr_diff import parse_pr_url, fetch_pr_diff, PRFetchError
 from summarize_pr import summarize_diff, generate_tests, SummarizeError
 from duplicate_detector import parse_repo_url, find_duplicates, DuplicateDetectionError
+from architecture_analyzer import analyze_architecture, ArchitectureError
 
 app = FastAPI()
 
@@ -80,6 +81,24 @@ def detect_duplicates_endpoint(request: SummarizeRequest):
         result = find_duplicates(owner, repo)
     except DuplicateDetectionError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    return result
+
+
+@app.post("/architecture")
+def architecture_endpoint(request: SummarizeRequest):
+    """
+    Analyze a repo's architecture: extracts real imports/symbols via tree-sitter,
+    then asks the AI to synthesize an overview and a Mermaid diagram from those facts.
+    """
+    try:
+        owner, repo = parse_repo_url(request.pr_url)
+        result = analyze_architecture(owner, repo)
+    except ArchitectureError as e:
+        message = str(e)
+        if "rate limit" in message.lower():
+            raise HTTPException(status_code=429, detail=message)
+        raise HTTPException(status_code=400, detail=message)
 
     return result
 

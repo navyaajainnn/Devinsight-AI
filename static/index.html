@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     :root {
       --ink: #0b0d12;
@@ -32,7 +33,7 @@
       line-height: 1.5;
     }
 
-    .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 32px; }
 
     nav {
       display: flex;
@@ -135,7 +136,7 @@
 
     .features {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 14px;
       padding: 8px 0 64px;
     }
@@ -155,10 +156,15 @@
     .feature-card:nth-child(1) .ficon { background: rgba(240, 185, 62, 0.12); color: var(--signal); }
     .feature-card:nth-child(2) .ficon { background: rgba(95, 217, 126, 0.12); color: var(--added); }
     .feature-card:nth-child(3) .ficon { background: rgba(255, 107, 107, 0.12); color: var(--removed); }
+    .feature-card:nth-child(4) .ficon { background: rgba(139, 158, 255, 0.12); color: #8b9eff; }
     .feature-card h3 { font-size: 0.92rem; font-weight: 600; margin: 0 0 6px; }
     .feature-card p { font-size: 0.82rem; color: var(--mute); margin: 0; line-height: 1.55; }
 
+    @media (max-width: 900px) {
+      .features { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 640px) {
+      .wrap { padding: 0 18px; }
       .features { grid-template-columns: 1fr; }
       .hero h1 { font-size: 2rem; }
     }
@@ -224,6 +230,44 @@
     #submitBtn .icon { color: var(--signal); }
     #testBtn .icon { color: var(--added); }
     #dupBtn .icon { color: var(--removed); }
+    #archBtn .icon { color: #8b9eff; }
+
+    .component-item {
+      background: var(--panel-raised);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      font-size: 0.87rem;
+    }
+    .component-item strong { font-family: var(--font-mono); font-size: 0.85rem; }
+    .mermaid-container {
+      background: #0d1017;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 28px;
+      margin-top: 14px;
+      overflow-x: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 380px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .mermaid-container svg {
+      width: 100% !important;
+      height: auto !important;
+      min-width: 600px;
+    }
+    @media (max-width: 640px) {
+      .mermaid-container {
+        padding: 16px;
+        min-height: 220px;
+      }
+      .mermaid-container svg {
+        min-width: 100%;
+      }
+    }
 
     .loading {
       display: none;
@@ -350,10 +394,10 @@
 
     footer {
       border-top: 1px solid var(--line);
-      padding: 28px 0 40px;
+      padding: 24px 0 36px;
       text-align: center;
       color: var(--mute);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-family: var(--font-mono);
     }
   </style>
@@ -402,6 +446,11 @@
         <h3>Find duplicate logic</h3>
         <p>Parses the whole repo with tree-sitter to catch copy-pasted functions across files and languages.</p>
       </div>
+      <div class="feature-card">
+        <div class="ficon">◈</div>
+        <h3>Understand architecture</h3>
+        <p>Parse the codebase to reveal the underlying structure and relationships between components.</p>
+      </div>
     </section>
 
     <section class="tool-section">
@@ -416,6 +465,7 @@
         <button id="submitBtn" class="action"><span class="icon">▸</span> Summarize</button>
         <button id="testBtn" class="action"><span class="icon">✓</span> Generate Tests</button>
         <button id="dupBtn" class="action"><span class="icon">⧉</span> Find Duplicates</button>
+        <button id="archBtn" class="action"><span class="icon">◈</span> Architecture</button>
       </div>
 
       <div id="loading" class="loading">Analyzing PR</div>
@@ -435,12 +485,31 @@
         <div class="panel-head">Duplicate Logic</div>
         <div class="panel-body" id="dupResultBody"></div>
       </div>
+
+      <div id="archLoading" class="loading">Analyzing repo architecture</div>
+      <div id="archResult" class="panel">
+        <div class="panel-head">Architecture</div>
+        <div class="panel-body" id="archResultBody"></div>
+      </div>
     </section>
 
     <footer>© 2026 devinsight-ai</footer>
   </div>
 
   <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        background: '#0d1017',
+        primaryColor: '#171b26',
+        primaryTextColor: '#e8eaf0',
+        primaryBorderColor: '#3a4258',
+        lineColor: '#5b6274',
+        fontFamily: 'IBM Plex Mono, monospace',
+      },
+    });
+
     const submitBtn = document.getElementById("submitBtn");
     const resultDiv = document.getElementById("result");
     const resultBody = document.getElementById("resultBody");
@@ -457,12 +526,70 @@
     const dupResultBody = document.getElementById("dupResultBody");
     const dupLoadingDiv = document.getElementById("dupLoading");
 
+    const archBtn = document.getElementById("archBtn");
+    const archResultDiv = document.getElementById("archResult");
+    const archResultBody = document.getElementById("archResultBody");
+    const archLoadingDiv = document.getElementById("archLoading");
+
     function normalizeUrl(value) {
       const trimmed = value.trim();
       if (!trimmed) return "";
       if (trimmed.startsWith("http")) return trimmed;
       return `https://github.com/${trimmed}`;
     }
+
+    archBtn.addEventListener("click", async () => {
+      const prUrl = normalizeUrl(prUrlInput.value);
+      if (!prUrl) { alert("Please paste a GitHub repo or PR URL first."); return; }
+
+      archResultDiv.style.display = "none";
+      archLoadingDiv.style.display = "block";
+      archBtn.disabled = true;
+
+      try {
+        const response = await fetch("/architecture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pr_url: prUrl }),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          archResultBody.innerHTML = `<span class="error-text">Error: ${data.detail}</span>`;
+          archResultDiv.style.display = "block";
+        } else {
+          const componentsHtml = data.components.map(c => `
+            <div class="component-item"><strong>${c.name}</strong> — ${c.role}</div>
+          `).join("");
+
+          archResultBody.innerHTML = `
+            <div class="meta-row"><span><strong>${data.files_analyzed}</strong> files analyzed</span></div>
+            <p>${data.overview}</p>
+            <div class="section-label">Components</div>
+            ${componentsHtml}
+            <div class="section-label">Diagram</div>
+            <div class="mermaid-container" id="mermaidContainer">Rendering diagram...</div>
+          `;
+          archResultDiv.style.display = "block";
+
+          // Render the Mermaid diagram separately, since it needs to run after
+          // the container element actually exists in the page.
+          try {
+            const { svg } = await mermaid.render("archDiagramSvg", data.mermaid_diagram);
+            document.getElementById("mermaidContainer").innerHTML = svg;
+          } catch (renderErr) {
+            document.getElementById("mermaidContainer").innerHTML =
+              `<span class="error-text">Diagram couldn't be rendered. Raw Mermaid code:</span><pre><code>${data.mermaid_diagram}</code></pre>`;
+          }
+        }
+      } catch (err) {
+        archResultBody.innerHTML = `<span class="error-text">Error: Could not reach the server.</span>`;
+        archResultDiv.style.display = "block";
+      } finally {
+        archLoadingDiv.style.display = "none";
+        archBtn.disabled = false;
+      }
+    });
 
     dupBtn.addEventListener("click", async () => {
       const prUrl = normalizeUrl(prUrlInput.value);

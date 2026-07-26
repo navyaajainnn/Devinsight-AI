@@ -67,13 +67,17 @@ def summarize_diff(diff: str) -> dict:
         response = model.generate_content(
             prompt,
             generation_config={"temperature": 0.2},
-            request_options={"timeout": 30},
+            request_options={"timeout": 60},
         )
     except ResourceExhausted:
         raise SummarizeError(
             "Gemini's rate limit was hit. Please wait a minute and try again."
         )
     except GoogleAPICallError as e:
+        if "deadline" in str(e).lower():
+            raise SummarizeError(
+                "The AI took too long to respond (this PR's diff may be large). Please try again."
+            )
         raise SummarizeError(f"The AI service returned an error: {e.message}")
 
     # response.text raises if the model's response was blocked by safety filters
@@ -184,13 +188,17 @@ def generate_tests(diff: str) -> dict:
         response = model.generate_content(
             prompt,
             generation_config={"temperature": 0.2},
-            request_options={"timeout": 30},
+            request_options={"timeout": 60},
         )
     except ResourceExhausted:
         raise SummarizeError(
             "Gemini's rate limit was hit. Please wait a minute and try again."
         )
     except GoogleAPICallError as e:
+        if "deadline" in str(e).lower():
+            raise SummarizeError(
+                "The AI took too long to respond (this PR's diff may be large). Please try again."
+            )
         raise SummarizeError(f"The AI service returned an error: {e.message}")
 
     try:
