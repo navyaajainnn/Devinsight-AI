@@ -7,7 +7,9 @@ Run with:
 Then open http://127.0.0.1:8000 in your browser.
 """
 
-from fastapi import FastAPI, HTTPException
+import json
+
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -16,6 +18,7 @@ from fetch_pr_diff import parse_pr_url, fetch_pr_diff, PRFetchError
 from summarize_pr import summarize_diff, generate_tests, SummarizeError
 from duplicate_detector import parse_repo_url, find_duplicates, DuplicateDetectionError
 from architecture_analyzer import analyze_architecture, ArchitectureError
+from webhook_handler import verify_signature, handle_pull_request_event, WebhookError
 
 app = FastAPI()
 
@@ -101,6 +104,35 @@ def architecture_endpoint(request: SummarizeRequest):
         raise HTTPException(status_code=400, detail=message)
 
     return result
+
+
+@app.post("/webhook/github")
+async def github_webhook(request: Request, background_tasks: BackgroundTasks):
+    """
+    GitHub calls this endpoint automatically when a PR is opened/updated.
+    We verify it's genuinely from GitHub, then hand off the actual analysis
+    to a background task so we can respond immediately - GitHub expects a
+    fast response and will consider the delivery failed (and retry) if we
+    take too long, and our AI analysis can easily take longer than that.
+    """
+    payload_body = await request.body()
+    signature = request.headers.get("X-Hub-Signature-256", "")
+
+    try:
+        valid = verify_signature(payload_body, signature)
+    except WebhookError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if not valid:
+        raise HTTPException(status_code=401, detail="Invalid webhook signature.")
+
+    event_type = request.headers.get("X-GitHub-Event")
+    payload = json.loads(payload_body)
+
+    if event_type == "pull_request":
+        background_tasks.add_task(handle_pull_request_event, payload)
+
+    return {"status": "received"}
 
 
 # Serve the frontend files (index.html, etc.) from a folder called "static"
