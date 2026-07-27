@@ -86,6 +86,8 @@ Actively in development — this is Phase 1 of a larger project.
 - AI-generated PR summaries (summary, risk level, key changes, files changed)
 - Simple web interface
 
+
+"this is a test change for webhook"
 **Planned next:**
 - Bug/issue detection in diffs
 - Duplicate logic detection
